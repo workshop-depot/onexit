@@ -20,7 +20,7 @@ func TestRegister(t *testing.T) {
 		}, i)
 	}
 
-	go final()
+	go forceExit(0, false)
 
 	<-Done()
 

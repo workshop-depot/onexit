@@ -70,3 +70,18 @@ func onSignal(f func(), sig ...os.Signal) {
 		f()
 	}()
 }
+
+// ForceExit ensures all registered deferred funcs are executed,
+// and waits for completion of all of them, then calls os.Exit(code)
+// with the provided code.
+func ForceExit(code int) {
+	forceExit(code, true)
+}
+
+func forceExit(code int, callExit bool) {
+	final()
+	<-Done()
+	if callExit {
+		os.Exit(code)
+	}
+}

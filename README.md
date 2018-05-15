@@ -1,3 +1,5 @@
+[![GoDoc](https://godoc.org/github.com/dc0d/onexit?status.svg)](https://godoc.org/github.com/dc0d/onexit)
+
 # onexit
 Package helps with running functions on app exit (receiving an OS signal), based on their priority.
 
