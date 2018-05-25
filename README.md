@@ -28,3 +28,5 @@ func init() {
 	onexit.Register(SyncLogger, -100)
 }
 ```
+
+Calling `os.Exit(code)` explicitly, will not trigger `onexit` to run registered functions. Because it causes the program to exit without waiting for anything. Instead, call `onexit.ForceExit(code)` which waits for all registered functions to execute and then calls `os.Exit(code)`.
