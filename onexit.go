@@ -61,9 +61,7 @@ func onSignal(f func(), sig ...os.Signal) {
 			syscall.SIGINT,
 			syscall.SIGTERM,
 			syscall.SIGQUIT,
-			syscall.SIGSTOP,
-			syscall.SIGTSTP,
-			syscall.SIGKILL)
+			syscall.SIGTSTP)
 	}
 	go func() {
 		<-sigc
