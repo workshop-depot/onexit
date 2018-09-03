@@ -9,11 +9,46 @@ import (
 	"github.com/dc0d/onexit/fnpq"
 )
 
+type deferred struct {
+	pq      fnpq.PriorityQueue
+	mx      sync.Mutex
+	cleanup sync.Once
+	done    chan struct{}
+}
+
+func newDeferred() *deferred {
+	return &deferred{done: make(chan struct{})}
+}
+
+func (d *deferred) Cleanup() {
+	d.cleanup.Do(func() {
+		defer close(d.done)
+		d.mx.Lock()
+		defer d.mx.Unlock()
+		for d.pq.Len() > 0 {
+			item := fnpq.Pop(&d.pq)
+			item.Action()
+		}
+	})
+}
+
+func (d *deferred) Done() <-chan struct{} {
+	return d.done
+}
+
+func (d *deferred) Register(action func(), priority ...int) {
+	d.mx.Lock()
+	defer d.mx.Unlock()
+	_priority := 0
+	if len(priority) > 0 {
+		_priority = priority[0]
+	}
+	t := fnpq.NewItem(action, _priority)
+	fnpq.Push(&d.pq, t)
+}
+
 var (
-	_pq       fnpq.PriorityQueue
-	_pqmx     sync.Mutex
-	_pqhandle sync.Once
-	_pqdone   = make(chan struct{})
+	_deferred = newDeferred()
 )
 
 func init() {
@@ -21,32 +56,17 @@ func init() {
 }
 
 func final() {
-	_pqhandle.Do(func() {
-		defer close(_pqdone)
-		_pqmx.Lock()
-		defer _pqmx.Unlock()
-		for _pq.Len() > 0 {
-			item := fnpq.Pop(&_pq)
-			item.Action()
-		}
-	})
+	_deferred.Cleanup()
 }
 
 // Done all registered deferred funcs are executed on signal.
 // Call <-Done() at the end of main function (for example).
-func Done() <-chan struct{} { return _pqdone }
+func Done() <-chan struct{} { return _deferred.Done() }
 
 // Register a function to be executed on app exit (by receiving an os signal),
 // based on priority.
 func Register(action func(), priority ...int) {
-	_pqmx.Lock()
-	defer _pqmx.Unlock()
-	_priority := 0
-	if len(priority) > 0 {
-		_priority = priority[0]
-	}
-	t := fnpq.NewItem(action, _priority)
-	fnpq.Push(&_pq, t)
+	_deferred.Register(action, priority...)
 }
 
 func onSignal(f func(), sig ...os.Signal) {
